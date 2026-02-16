@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>KizmoTek Suite - Error</title>
+  <style>
+    body{margin:0;padding:32px;font-family:system-ui,Segoe UI,Arial;background:#0b0f14;color:#e8eef6}
+    .card{max-width:720px;margin:0 auto;background:#121824;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px}
+    h1{margin:0 0 10px;font-size:20px}
+    p{margin:0 0 12px;opacity:.9}
+    code{display:block;white-space:pre-wrap;background:#0b0f14;border:1px solid rgba(255,255,255,.08);padding:12px;border-radius:8px}
+    button{margin-top:12px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:#1a2333;color:#e8eef6;cursor:pointer}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Can’t load KizmoTek Suite</h1>
+    <p>The website didn’t load. Check your internet connection or try again.</p>
+    <code id="details">No details.</code>
+    <button onclick="location.reload()">Retry</button>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const msg = params.get("msg");
+    if (msg) document.getElementById("details").textContent = decodeURIComponent(msg);
+  </script>
+</body>
+</html>

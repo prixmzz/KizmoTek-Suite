@@ -1,10 +1,21 @@
-const { app, BrowserWindow, shell, session, dialog } = require("electron");
+const { app, BrowserWindow, shell, dialog } = require("electron");
+const path = require("path");
 
+const APP_NAME = "KizmoTek Suite";
+const START_URL = "https://ktek.on-nocom.net";
 
-const GITHUB_OWNER = "prixmzz"; 
-const GITHUB_REPO  = "KizmoTek-Suite"; 
+const GITHUB_OWNER = "prixmzz";
+const GITHUB_REPO = "KizmoTek-Suite";
 const RELEASES_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const DOWNLOAD_PAGE = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
+
+function lockTitle(win) {
+  win.setTitle(APP_NAME);
+  win.on("page-title-updated", (e) => {
+    e.preventDefault();
+    win.setTitle(APP_NAME);
+  });
+}
 
 function isNewer(latest, current) {
   const a = latest.split(".").map(n => parseInt(n, 10));
@@ -36,51 +47,73 @@ async function checkForUpdate(win) {
         defaultId: 0,
         title: "Update available",
         message: `Update available: ${latest}`,
-        detail: `You have: ${current}\n\nClick Download to open the GitHub releases page.`
+        detail: `You have: ${current}\n\nClick Download to open GitHub releases.`
       });
 
-      if (choice.response === 0) {
-        shell.openExternal(DOWNLOAD_PAGE);
-      }
+      if (choice.response === 0) shell.openExternal(DOWNLOAD_PAGE);
     }
   } catch {
-    
+    // ignore
   }
 }
 
-module.exports = { checkForUpdate };
+function loadErrorPage(win, err) {
+  const msg = encodeURIComponent(String(err || "Unknown error"));
+  win.loadFile(path.join(__dirname, "error.html"), { query: { msg } }).catch(() => {});
+}
 
-const APP_NAME = "KizmoTek Suite";
-const START_URL = "https://ktek.on-nocom.net"; 
-function createWindow() {
+async function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    show: false,
+
+    // SHOW IMMEDIATELY so it doesn’t feel “frozen”
+    show: true,
+
     autoHideMenuBar: true,
     title: APP_NAME,
-    icon: __dirname + "/../assets/icon.ico",
+    icon: path.join(__dirname, "..", "assets", "icon.ico"),
+    backgroundColor: "#0b0f14",
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true,
-    },
-
+      sandbox: true
+    }
   });
- checkForUpdate(win)
- 
-  win.loadURL(START_URL);
 
-  win.once("ready-to-show", () => win.show());
+  lockTitle(win);
 
+  // Show an instant local loading UI (fast)
+  await win.loadFile(path.join(__dirname, "loading.html"));
+  lockTitle(win);
+
+  // Update check in the background (doesn’t block page load)
+  checkForUpdate(win);
+
+  // Load the site
+  win.loadURL(START_URL).catch((e) => loadErrorPage(win, e));
+
+  // If main frame fails, show error page
+  win.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+    if (!isMainFrame) return;
+    loadErrorPage(win, `${errorCode}: ${errorDescription} (${validatedURL})`);
+  });
+
+  // Keep OAuth/popups working: allow popups inside the app
   win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
-    return { action: "deny" };
+    // If you want *everything* external, switch this to shell.openExternal + deny.
+    return { action: "allow" };
   });
 
+  // Allow your site + Discord. Open everything else externally.
   win.webContents.on("will-navigate", (event, url) => {
-    const allowed = url.startsWith("https://discord.com/");
-    if (!allowed) {
+    const allow =
+      url.startsWith(START_URL) ||
+      url.startsWith("https://ktek.on-nocom.net") ||
+      url.startsWith("https://discord.com") ||
+      url.startsWith("https://discordapp.com");
+
+    if (!allow) {
       event.preventDefault();
       shell.openExternal(url);
     }

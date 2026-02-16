@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>KizmoTek Suite</title>
+  <style>
+    body{margin:0;display:flex;align-items:center;justify-content:center;height:100vh;
+      font-family:system-ui,Segoe UI,Arial;background:#0b0f14;color:#e8eef6}
+    .box{display:flex;flex-direction:column;gap:12px;align-items:center}
+    .spinner{width:34px;height:34px;border:4px solid rgba(255,255,255,.18);border-top-color:#fff;border-radius:50%;
+      animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .small{opacity:.8;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="spinner"></div>
+    <div>Starting KizmoTek Suite…</div>
+    <div class="small">Loading app content</div>
+  </div>
+</body>
+</html>
