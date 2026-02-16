@@ -1,9 +1,8 @@
 const { app, BrowserWindow, shell, session, dialog } = require("electron");
 
-const { app, dialog, shell } = require("electron");
 
-const GITHUB_OWNER = "YourUser"; 
-const GITHUB_REPO  = "YourRepo"; 
+const GITHUB_OWNER = "prixmzz"; 
+const GITHUB_REPO  = "KizmoTek-Suite"; 
 const RELEASES_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const DOWNLOAD_PAGE = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 
