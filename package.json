@@ -1,7 +1,7 @@
 {
   "name": "kizmotek-suite",
   "productName": "KizmoTek Suite",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Moderation Suite for KizmoTek Studio Game Team",
   "main": "src/main.js",
   "scripts": {

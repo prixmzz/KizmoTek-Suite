@@ -18,8 +18,8 @@ function lockTitle(win) {
 }
 
 function isNewer(latest, current) {
-  const a = latest.split(".").map(n => parseInt(n, 10));
-  const b = current.split(".").map(n => parseInt(n, 10));
+  const a = latest.split(".").map((n) => parseInt(n, 10));
+  const b = current.split(".").map((n) => parseInt(n, 10));
   for (let i = 0; i < 3; i++) {
     const ai = a[i] || 0;
     const bi = b[i] || 0;
@@ -32,7 +32,7 @@ function isNewer(latest, current) {
 async function checkForUpdate(win) {
   try {
     const res = await fetch(RELEASES_URL, {
-      headers: { "User-Agent": `${GITHUB_OWNER}-${GITHUB_REPO}` }
+      headers: { "User-Agent": `${GITHUB_OWNER}-${GITHUB_REPO}` },
     });
     if (!res.ok) return;
 
@@ -47,19 +47,28 @@ async function checkForUpdate(win) {
         defaultId: 0,
         title: "Update available",
         message: `Update available: ${latest}`,
-        detail: `You have: ${current}\n\nClick Download to open GitHub releases.`
+        detail: `You have: ${current}\n\nClick Download to open GitHub releases.`,
       });
 
       if (choice.response === 0) shell.openExternal(DOWNLOAD_PAGE);
     }
   } catch {
-    // ignore
   }
 }
 
-function loadErrorPage(win, err) {
-  const msg = encodeURIComponent(String(err || "Unknown error"));
-  win.loadFile(path.join(__dirname, "error.html"), { query: { msg } }).catch(() => {});
+function loadLocalError(win, message) {
+  if (win.__showingLocalError) return;
+  win.__showingLocalError = true;
+
+  try {
+    win.webContents.stop();
+  } catch {}
+
+  const msg = encodeURIComponent(String(message || "Service unavailable"));
+  win
+    .loadFile(path.join(__dirname, "error.html"), { query: { msg } })
+    .catch(() => {});
+  lockTitle(win);
 }
 
 async function createWindow() {
@@ -67,7 +76,6 @@ async function createWindow() {
     width: 1200,
     height: 800,
 
-    // SHOW IMMEDIATELY so it doesn’t feel “frozen”
     show: true,
 
     autoHideMenuBar: true,
@@ -77,38 +85,53 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
-    }
+      sandbox: true,
+    },
   });
 
   lockTitle(win);
 
-  // Show an instant local loading UI (fast)
   await win.loadFile(path.join(__dirname, "loading.html"));
   lockTitle(win);
 
-  // Update check in the background (doesn’t block page load)
   checkForUpdate(win);
 
-  // Load the site
-  win.loadURL(START_URL).catch((e) => loadErrorPage(win, e));
+  win.webContents.session.webRequest.onCompleted(
+    { urls: ["https://ktek.on-nocom.net/*"] },
+    (details) => {
+      if (win.isDestroyed()) return;
+      if (win.__showingLocalError) return;
 
-  // If main frame fails, show error page
-  win.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    if (!isMainFrame) return;
-    loadErrorPage(win, `${errorCode}: ${errorDescription} (${validatedURL})`);
-  });
+      if (details.resourceType !== "mainFrame") return;
 
-  // Keep OAuth/popups working: allow popups inside the app
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    // If you want *everything* external, switch this to shell.openExternal + deny.
-    return { action: "allow" };
-  });
+      const code = details.statusCode || 0;
+      if ([502, 503, 504, 520, 521, 522, 523, 524].includes(code)) {
+        loadLocalError(
+          win,
+          `KizmoTek Suite is temporarily down (HTTP ${code}).\n\n${details.url}`
+        );
+      }
+    }
+  );
 
-  // Allow your site + Discord. Open everything else externally.
+  win.loadURL(START_URL).catch((e) => loadLocalError(win, e));
+
+  win.webContents.on(
+    "did-fail-load",
+    (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      if (!isMainFrame) return;
+      if (win.__showingLocalError) return;
+      loadLocalError(
+        win,
+        `${errorCode}: ${errorDescription}\n\n${validatedURL || START_URL}`
+      );
+    }
+  );
+
+  win.webContents.setWindowOpenHandler(() => ({ action: "allow" }));
+
   win.webContents.on("will-navigate", (event, url) => {
     const allow =
-      url.startsWith(START_URL) ||
       url.startsWith("https://ktek.on-nocom.net") ||
       url.startsWith("https://discord.com") ||
       url.startsWith("https://discordapp.com");
