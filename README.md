@@ -11,3 +11,4 @@ Sorry If you came here looking for something interesting.
 
 > **If you find a vulnerability, please report it quickly to https://nocomsolutions.com/support**
 
+For legal reasons we must disclaim that nocom Solutions is **NOT** affiliated with KizmoTek ["KizmoTek Studio", "KizmoTek, INC."]. This application was created privately and independently.
